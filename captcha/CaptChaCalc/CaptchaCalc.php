@@ -140,7 +140,6 @@ class CaptchaCalc
     }
 
     /**
-     * Sets a random angle between 0° and 270° because of Pythagoras's Theorem which dictates 1 fix angle of 90°: 360° - 90° = 270°
      *
      * @param $max
      * @return int
@@ -218,7 +217,6 @@ class CaptchaCalc
         }
         $height = intval(($width + $tan) / 2);
         $startY = intval(($height - $this->fontSize) / 2 + 3 * $tan);
-        //echo "($height - $this->fontSize) / 2 + 3 * $tan = $startY";
         $image = imagecreatetruecolor($width, $height);
         $bgColor = $this->setRandomBackgroundColor($backRed, $backGreen, $backBlue);
         $txtColor = $this->setRandomTextColor($bgColor);
