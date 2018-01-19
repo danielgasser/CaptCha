@@ -1,4 +1,4 @@
-# CaptCha
+# toesslab - CaptCha
 Creates an image with a randomly created simple arithmetic operation as Captcha.
 
 Requires PHP version 7.x
