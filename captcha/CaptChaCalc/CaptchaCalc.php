@@ -99,7 +99,8 @@ class CaptchaCalc
     }
 
     /**
-     * @param int $fontSize
+     * @param int|null $fontSize
+     * @throws \Exception
      */
     public function setFontSize(int $fontSize = null)
     {
@@ -123,30 +124,42 @@ class CaptchaCalc
     /**
      * @param string $path must be an absolute path
      */
-    public function setFontFile(string $path = '/www/daniel-gasser.com/captcha/fonts/roboto/Roboto-Black.ttf')
+    public function setFontFile(string $path = 'C:\Dev\Web\test\toesslab-CaptCha\captcha\fonts\Roboto-Black.ttf')
     {
         $this->fontFile = $path;
     }
 
     /**
-     *
+     * @return string
      */
     protected function setRandomCalc()
     {
-        $this->low = random_int($this->maxLow, $this->maxHigh);
-        $this->high = random_int($this->maxLow, $this->maxHigh);
+        try {
+            $this->low = random_int($this->maxLow, $this->maxHigh);
+        } catch (\Exception $e) {
+            return $e->getMessage();
+        }
+        try {
+            $this->high = random_int($this->maxLow, $this->maxHigh);
+        } catch (\Exception $e) {
+            return $e->getMessage();
+        }
         $this->operator = $this->availableOperators[array_rand($this->availableOperators, 1)];
         $this->getCalculation();
+        return '';
     }
 
     /**
-     *
      * @param $max
-     * @return int
+     * @return int|string
      */
     protected function setRandomAngle($max)
     {
-        return random_int(0, $max - $max / 100 * 10);
+        try {
+            return random_int(0, $max - $max / 100 * 10);
+        } catch (\Exception $e) {
+            return $e->getMessage();
+        }
     }
 
     /**
@@ -200,10 +213,11 @@ class CaptchaCalc
     }
 
     /**
-     * @param int $backRed
-     * @param int $backGreen
-     * @param int $backBlue
+     * @param int|null $backRed
+     * @param int|null $backGreen
+     * @param int|null $backBlue
      * @return string
+     * @throws \Exception
      */
     public function generateImage(int $backRed = null, int $backGreen = null, int $backBlue = null)
     {
@@ -223,25 +237,31 @@ class CaptchaCalc
         $backGroundColor = imagecolorallocate($image, $bgColor['red'], $bgColor['green'], $bgColor['blue']);
         $textColor = imagecolorallocate($image, $txtColor[0], $txtColor[1], $txtColor[2]);
         imagefill($image, 0, 0, $backGroundColor);
-        imagettftext($image, $this->fontSize, $angle, $startX, $startY, $textColor, $this->fontFile , $this->calculation);
-        ob_start();
-        imagepng($image);
-        $img = ob_get_clean();
-        imagedestroy($image);
-        return 'data:image/png;base64,' . base64_encode($img);
+        if (@imagettftext($image, $this->fontSize, $angle, $startX, $startY, $textColor, $this->fontFile , $this->calculation) !== false) {
+            ob_start();
+            imagepng($image);
+            $img = ob_get_clean();
+            imagedestroy($image);
+            return 'data:image/png;base64,' . base64_encode($img);
+        }
+        throw new \Exception('Invalid font filename');
     }
 
     /**
      * @param int|null $red
      * @param int|null $green
      * @param int|null $blue
-     * @return array
+     * @return array|string
      */
     protected function setRandomBackgroundColor(int $red = null, int $green = null, int $blue = null)
     {
-        $r = ($red) ? $red : random_int(0, 255);
-        $g = ($green) ? $green : random_int(0, 255);
-        $b = ($blue) ? $blue : random_int(0, 255);
+        try {
+            $r = ($red) ? $red : random_int(0, 255);
+            $g = ($green) ? $green : random_int(0, 255);
+            $b = ($blue) ? $blue : random_int(0, 255);
+        } catch (\Exception $e) {
+            return $e->getTraceAsString();
+        }
         return [
             'red' => $r,
             'green' => $g,
@@ -259,10 +279,8 @@ class CaptchaCalc
     {
         $oppositeColor = [];
         $ss = '';
-        $list1 = '0 1 2 3 4 5 6 7 8 9 A B C D E F';
-        $list2 = 'F E D C B A 9 8 7 6 5 4 3 2 1 0';
-        $arrList1 = explode(' ', $list1);
-        $arrList2 = explode(' ', $list2);
+        $list1 = [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
+        $list2 = array_reverse($list1);
         foreach ($color as $c) {
             $int = strtoupper(dechex($c));
             if (strlen($int) < 2 && (int) $int < 10) {
@@ -273,9 +291,9 @@ class CaptchaCalc
             $ss .= $tempColor;
             $tC[] = substr($tempColor, 0, 1);
             $tC[] = substr($tempColor, 1, 1);
-            $key1 = array_keys($arrList1, $tC[0]);
-            $key2 = array_keys($arrList2, $tC[1]);
-            $oppositeColor[] = hexdec($arrList1[$key2[0]]) . hexdec($arrList2[$key1[0]]);
+            $key1 = array_keys($list1, $tC[0]);
+            $key2 = array_keys($list2, $tC[1]);
+            $oppositeColor[] = hexdec($list1[$key2[0]]) . hexdec($list2[$key1[0]]);
         }
         return $oppositeColor;
     }
@@ -284,10 +302,15 @@ class CaptchaCalc
      * @param int $min
      * @param int $max
      * @return int
+     * @throws \Exception
      */
     protected function setRandomFontSize(int $min = 10, int $max = 50)
     {
-        return random_int($min, $max);
+        try {
+            return random_int($min, $max);
+        } catch (\Exception $e) {
+            return $e->getMessage();
+        }
     }
 
     /**
@@ -311,5 +334,4 @@ class CaptchaCalc
         $divisor += 1;
         return $this->setIntegerDivision($divisor, $dividend);
     }
-
 }
