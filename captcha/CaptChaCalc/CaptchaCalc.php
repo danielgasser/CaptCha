@@ -339,6 +339,10 @@ class CaptchaCalc
         return $this->setIntegerDivision($divisor, $dividend);
     }
 
+    /**
+     * @param string $color
+     * @return int|string
+     */
     protected function checkDistanceImageColors(string $color)
     {
         if ((int)$color > 255) {
