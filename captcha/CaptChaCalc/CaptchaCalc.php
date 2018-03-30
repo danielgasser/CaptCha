@@ -293,7 +293,11 @@ class CaptchaCalc
             $tC[] = substr($tempColor, 1, 1);
             $key1 = array_keys($list1, $tC[0]);
             $key2 = array_keys($list2, $tC[1]);
-            $oppositeColor[] = hexdec($list1[$key2[0]]) . hexdec($list2[$key1[0]]);
+            $checkColor = hexdec($list1[$key2[0]]) . hexdec($list2[$key1[0]]);
+            if ((int)$checkColor > 255) {
+                $checkColor = $this->checkDistanceImageColors($checkColor);
+            }
+            $oppositeColor[] = $checkColor;
         }
         return $oppositeColor;
     }
@@ -333,5 +337,14 @@ class CaptchaCalc
         }
         $divisor += 1;
         return $this->setIntegerDivision($divisor, $dividend);
+    }
+
+    protected function checkDistanceImageColors(string $color)
+    {
+        if ((int)$color > 255) {
+            $color -= 10;
+            return $this->checkDistanceImageColors($color);
+        }
+        return $color;
     }
 }
