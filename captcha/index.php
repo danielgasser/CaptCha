@@ -1,7 +1,6 @@
 <?php
 require_once 'CaptChaCalc/CaptchaCalc.php';
-echo $_SERVER['DOCUMENT_ROOT'];
-$captcha = new \CaptchaCalc\CaptchaCalc(3, 15, ['+', '-', '*', '/']);
+$captcha = new \CaptchaCalc\CaptchaCalc(3, 15, ['+', '-', '*', '/'], '', 150);
 $img = $captcha->generateImage();
 ?>
 <html lang="en">
@@ -19,10 +18,10 @@ echo '</h3>';
 ?>
 <h3>Possible Options:</h3>
 <ul>
-        <li><b>int $maxLow </b>:<br>The lowest randomly possible number</li>
-        <li><b>int $maxHigh </b>:<br>The highest randomly possible number</li>
-        <li><b>array $availableOperators </b>:<br>Addition, Subtraction, Multiplication & Division are supported</li>
-        <li><b>string $fontFile </b>:<br>Absolute path to a .ttf font file</li>
+        <li><code>int $maxLow </code>:<br>The lowest randomly possible number</li>
+        <li><code>int $maxHigh </code>:<br>The highest randomly possible number</li>
+        <li><code>array $availableOperators </code>:<br>Addition, Subtraction, Multiplication & Division are supported</li>
+        <li><code>string $fontFile </code>:<br>Absolute path to a .ttf font file</li>
 </ul>
 <h3>Must haves</h3>
 <ul>

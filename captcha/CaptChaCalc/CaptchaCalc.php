@@ -22,6 +22,11 @@ class CaptchaCalc
     /**
      * @var int
      */
+    protected $maxImgWidth;
+
+    /**
+     * @var int
+     */
     protected $low;
 
     /**
@@ -70,20 +75,27 @@ class CaptchaCalc
     protected $calculation = '';
 
     /**
+     * constant int
+     */
+    const TOO_HIGH_COLOR_FACTOR = 10;
+
+    /**
      * CaptchaCalc constructor.
-     * @param int $maxLow
-     * @param int $maxHigh
-     * @param array $availableOperators
+     * @param int    $maxLow
+     * @param int    $maxHigh
+     * @param array  $availableOperators
      * @param string $fontFile
+     * @param int    $maxImgWidth
      * @throws \Exception
      */
-    function __construct(int $maxLow = 1, int $maxHigh = 255, array $availableOperators = ['+', '-', '*', '/'], string $fontFile = '')
+    function __construct(int $maxLow = 1, int $maxHigh = 255, array $availableOperators = ['+', '-', '*', '/'], string $fontFile = '', int $maxImgWidth)
     {
-        if(!extension_loaded('gd')) {
-            throw new \Exception('lib not loaded');
+        if (!extension_loaded('gd')) {
+            throw new \Exception('gd-lib not loaded');
         }
         $this->maxLow = $maxLow;
         $this->maxHigh = $maxHigh;
+        $this->maxImgWidth = $maxImgWidth;
         $opDiff = array_diff($availableOperators, $this->allowedOperators);
         if (sizeof($opDiff) > 0) {
             throw new \Exception('Operator(s): ' . implode(', ', $opDiff) . ' is/are not supported');
@@ -122,7 +134,7 @@ class CaptchaCalc
     }
 
     /**
-     * @param string $path must be an absolute path
+     * @param string $path
      */
     public function setFontFile(string $path = 'C:\Dev\Web\test\toesslab-CaptCha\captcha\fonts\Roboto-Black.ttf')
     {
@@ -223,21 +235,38 @@ class CaptchaCalc
     {
         $textLength = strlen($this->calculation) * $this->fontSize / 1.5;
         $width = intval($textLength / 2 + $textLength);
-        $startX = intval(($width - $textLength) / 2);
+        $startX = intval(($width - $textLength) - $textLength / 100 * 5);
+        if ($startX <= 0) {
+            $startX = $width - $textLength;
+        }
         $angle = $this->setRandomAngle($startX);
         $tan = intval(rad2deg(atan(deg2rad($angle))));
         if ($tan == 0) {
             $tan += 1;
         }
-        $height = intval(($width + $tan) / 2);
-        $startY = intval(($height - $this->fontSize) / 2 + 3 * $tan);
+        $height = intval(($width + $tan) / 2 + $this->fontSize);
+        $startY = intval(($height - $this->fontSize) / 2 + 4 * $tan);
+        if (intval($startX + $textLength) > $width) {
+            $startX += $startX + $textLength;
+        }
+        if ((int)$startY > $height) {
+            $tmp = $this->checkTooHighStartY($height, $startY, $this->fontSize);
+            $startY = $tmp[0];
+            $this->fontSize = $tmp[1];
+        }
         $image = imagecreatetruecolor($width, $height);
         $bgColor = $this->setRandomBackgroundColor($backRed, $backGreen, $backBlue);
         $txtColor = $this->setRandomTextColor($bgColor);
         $backGroundColor = imagecolorallocate($image, $bgColor['red'], $bgColor['green'], $bgColor['blue']);
         $textColor = imagecolorallocate($image, $txtColor[0], $txtColor[1], $txtColor[2]);
         imagefill($image, 0, 0, $backGroundColor);
-        if (@imagettftext($image, $this->fontSize, $angle, $startX, $startY, $textColor, $this->fontFile , $this->calculation) !== false) {
+        if (@imagettftext($image, $this->fontSize, $angle, $startX, $startY, $textColor, $this->fontFile, $this->calculation) !== false) {
+            $r = '';
+            if ($width > $this->maxImgWidth) {
+                $image = imagescale($image, $this->maxImgWidth, -1);
+                $r = 'resized_';
+            }
+            imagepng($image, 'C:\Dev\Web\test\toesslab-CaptCha\tests\images\\' . $r . $this->fontSize . '_startX_' . $startX . '_startY_' . $startY . '_height_' . $height . '_width_' . $width . '_length_' . (int)$textLength . '_widthX_' . (int)($startX + $textLength) . '_heightY_' . (int)($startY + $textLength) . '.png');
             ob_start();
             imagepng($image);
             $img = ob_get_clean();
@@ -279,11 +308,11 @@ class CaptchaCalc
     {
         $oppositeColor = [];
         $ss = '';
-        $list1 = [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
+        $list1 = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
         $list2 = array_reverse($list1);
         foreach ($color as $c) {
             $int = strtoupper(dechex($c));
-            if (strlen($int) < 2 && (int) $int < 10) {
+            if (strlen($int) < 2 && (int)$int < 10) {
                 $tempColor = '0' . $int;
             } else {
                 $tempColor = $int;
@@ -295,7 +324,7 @@ class CaptchaCalc
             $key2 = array_keys($list2, $tC[1]);
             $checkColor = hexdec($list1[$key2[0]]) . hexdec($list2[$key1[0]]);
             if ((int)$checkColor > 255) {
-                $checkColor = $this->checkDistanceImageColors($checkColor);
+                $checkColor = $this->checkTooHighColorValue($checkColor);
             }
             $oppositeColor[] = $checkColor;
         }
@@ -343,12 +372,44 @@ class CaptchaCalc
      * @param string $color
      * @return int|string
      */
-    protected function checkDistanceImageColors(string $color)
+    protected function checkTooHighColorValue(string $color)
     {
         if ((int)$color > 255) {
-            $color -= 10;
-            return $this->checkDistanceImageColors($color);
+            $color -= self::TOO_HIGH_COLOR_FACTOR;
+            return $this->checkTooHighColorValue($color);
         }
         return $color;
+    }
+
+    /**
+     * @param int $height
+     * @param int $startY
+     * @param int $fontSize
+     * @return array
+     */
+    protected function checkTooHighStartY(int $height, int $startY, int $fontSize)
+    {
+        $tmp = [];
+        if ((int)$startY > (int)$height) {
+            //$fontSize -= 4;
+            $startY -= 4;
+            return $this->checkTooHighStartY($height, $startY, $fontSize);
+        }
+        $tmp[] = $startY;
+        $tmp[] = $fontSize;
+        return $tmp;
+    }
+
+    /**
+     * @param int $width
+     * @return int
+     */
+    protected function checkMaxImgWidth(int $width)
+    {
+        if ($width > $this->maxImgWidth) {
+            $width = $this->maxImgWidth;
+            return;
+        }
+        return $width;
     }
 }
