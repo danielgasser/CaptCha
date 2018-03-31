@@ -399,17 +399,4 @@ class CaptchaCalc
         $tmp[] = $fontSize;
         return $tmp;
     }
-
-    /**
-     * @param int $width
-     * @return int
-     */
-    protected function checkMaxImgWidth(int $width)
-    {
-        if ($width > $this->maxImgWidth) {
-            $width = $this->maxImgWidth;
-            return;
-        }
-        return $width;
-    }
 }
